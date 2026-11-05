@@ -49,14 +49,19 @@ codesign --force --sign "Local Code Signing" --keychain "$KEYCHAIN" "$APP" >/dev
 echo "Built $APP"
 
 if [[ "${1:-}" == "--install" ]]; then
-  pkill -x MarkdownViewer 2>/dev/null || true
-  mkdir -p ~/Applications
-  rm -rf ~/Applications/MarkdownViewer.app
-  cp -R "$APP" ~/Applications/
   LSREGISTER=/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister
-  "$LSREGISTER" -f -R ~/Applications/MarkdownViewer.app
-  pluginkit -a ~/Applications/MarkdownViewer.app/Contents/PlugIns/MarkdownPreview.appex
+  INSTALLED="$HOME/Applications/MarkdownViewer.app"
+  pkill -x MarkdownViewer 2>/dev/null || true
+  mkdir -p "$HOME/Applications"
+  rm -rf "$INSTALLED"
+  ditto "$APP" "$INSTALLED"
+  pluginkit -r "$PWD/$EXT" 2>/dev/null || true
+  "$LSREGISTER" -u "$PWD/$APP" 2>/dev/null || true
+  rm -rf "$APP"
+  "$LSREGISTER" -f -R "$INSTALLED"
+  pluginkit -a "$INSTALLED/Contents/PlugIns/MarkdownPreview.appex"
+  pluginkit -e use -i io.github.omarthailand2231.markdownviewer.quicklook
   qlmanage -r >/dev/null 2>&1 || true
   qlmanage -r cache >/dev/null 2>&1 || true
-  echo "Installed ~/Applications/MarkdownViewer.app"
+  echo "Installed $INSTALLED"
 fi

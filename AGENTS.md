@@ -20,7 +20,7 @@ cd ~/Developer/markdown-viewer-macos
 
 `xcode-select --install` opens a system dialog the user has to click through. Wait for it to finish before building.
 
-A successful `doctor.sh` prints six ✓ lines and exits with code 0:
+A successful `doctor.sh` prints seven ✓ lines and exits with code 0:
 
 ```text
 Markdown Viewer doctor
@@ -28,6 +28,7 @@ Markdown Viewer doctor
   ✓ Code signature valid
   ✓ Quick Look extension registered and enabled
   ✓ Default app for .md files
+  ✓ Only one copy registered with macOS
   ✓ Bundled katex.min.js
   ✓ Bundled mermaid.min.js
 ```
@@ -111,6 +112,7 @@ Dollar amounts such as `$5 and $10` stay plain text. To print a literal dollar s
 | Symptom | Fix |
 |:--------|:----|
 | Space in Finder still shows plain text | `qlmanage -r && qlmanage -r cache && killall Finder`, then check System Settings → General → Login Items & Extensions → Quick Look → **Markdown Preview** is on. Run `./scripts/doctor.sh`. |
+| Settings seem lost after a restart or login | Run `./scripts/doctor.sh`. Everything is saved on disk by macOS (default app via Launch Services, the extension via `pluginkit -e use`). The usual cause is a second registered copy of the app (doctor flags it); unregister it with `lsregister -u <path>`. Then run `--make-default`. |
 | `.md` files still open in TextEdit or Xcode | `~/Applications/MarkdownViewer.app/Contents/MacOS/MarkdownViewer --make-default`, or Finder → Get Info → Open with → Change All… |
 | `swiftc: command not found` / `xcrun: error` | Install the Command Line Tools: `xcode-select --install` |
 | Signing fails | `./scripts/setup-signing.sh` is idempotent. Delete `~/Library/Keychains/dev-signing.keychain-db` and `~/.config/dev-signing/keychain-password`, then rebuild. |
@@ -168,4 +170,5 @@ scripts/                               build, test, snapshot, doctor, uninstall,
 5. No new dependencies or package managers. Third-party code goes in `Vendor/<name>/` at a pinned version with its `LICENSE`, copied into both bundles by `scripts/build.sh`.
 6. Keep code free of explanatory comments; explain design in README.md or this file.
 7. Bundle identifiers: app `io.github.omarthailand2231.markdownviewer`, extension `….quicklook`. Changing them re-registers the extension and resets the default-app choice.
-8. After changing the extension, run `./scripts/build.sh --install`. Finder may keep an old preview until `qlmanage -r cache` runs or Finder relaunches.
+8. `./scripts/build.sh --install` moves the bundle out of `build/` and unregisters that path, so macOS only ever knows one copy (two copies with the same bundle ID can make macOS pick the wrong one after a restart). The app claims Markdown with `LSHandlerRank` **Owner**, and `--make-default` writes the choice through both `LSSetDefaultRoleHandlerForContentType` and `NSWorkspace.setDefaultApplication`.
+9. After changing the extension, run `./scripts/build.sh --install`. Finder may keep an old preview until `qlmanage -r cache` runs or Finder relaunches.
