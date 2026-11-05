@@ -56,12 +56,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         controller.onClose = { [weak self] closed in self?.controllers.removeAll { $0 === closed } }
         if let last = controllers.last?.window {
             controller.window?.setFrameTopLeftPoint(last.cascadeTopLeft(from: NSPoint(x: last.frame.minX, y: last.frame.maxY)))
-        } else {
-            controller.window?.center()
+        } else if let window = controller.window {
+            if !window.setFrameUsingName(DocumentWindowController.frameName) { window.center() }
+            window.setFrameAutosaveName(DocumentWindowController.frameName)
         }
         controllers.append(controller)
         controller.showWindow(nil)
         NSDocumentController.shared.noteNewRecentDocumentURL(url)
+    }
+
+    @objc func openRecent(_ sender: NSMenuItem) {
+        guard let url = sender.representedObject as? URL else { return }
+        open(url)
     }
 
     @objc func openDocument(_ sender: Any?) {

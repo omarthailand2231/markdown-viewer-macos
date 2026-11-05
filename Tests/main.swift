@@ -1,5 +1,6 @@
 import AppKit
 import Foundation
+import WebKit
 
 let fixtures = URL(fileURLWithPath: CommandLine.arguments[1])
 var failures = 0
@@ -112,6 +113,18 @@ check("diff hunk", plain.contains("<span class=\"diff-hunk\">@@ -1,4 +1,4 @@</sp
 check("diff file headers", plain.contains("<span class=\"diff-meta\">--- a/greeting.swift</span>") && plain.contains("<span class=\"diff-meta\">+++ b/greeting.swift</span>"))
 check("diff context line", plain.contains("<span class=\"diff-context\"> func greet(_ name: String) -&gt; String {</span>"))
 
+let pendingPage = MarkdownRenderer.body(markdown: diagramsMarkdown, fileURL: diagramsURL, diagramsPending: true)
+check("pending diagram placeholder", pendingPage.contains("<div class=\"mermaid-pending\" data-mermaid=\"0\"><pre><code class=\"language-mermaid\">flowchart LR"))
+check("pending placeholders numbered in order", pendingPage.contains("data-mermaid=\"1\"") && pendingPage.contains("data-mermaid=\"2\""))
+check("final render has no pending placeholders", !plain.contains("mermaid-pending"))
+
+let styles = MarkdownRenderer.stylesheet
+check("diff line backgrounds stretch with long lines", styles.contains("pre.diff code { display: inline-block; min-width: 100%; }"))
+check("narrow window layout", styles.contains("@media (max-width: 600px)") && styles.contains("var(--diagram-width"))
+check("fluid page padding", styles.contains("clamp("))
+check("print layout", styles.contains("@media print") && styles.contains("break-inside: avoid"))
+check("smooth anchor scrolling", styles.contains("scroll-behavior: smooth"))
+
 let crlf = render("crlf.md")
 check("crlf heading", crlf.contains("<h1 id=\"crlf-title\">CRLF Title</h1>"))
 check("crlf list", crlf.contains("<li><p>a</p>\n</li>\n<li><p>b</p>"))
@@ -135,20 +148,51 @@ Task { @MainActor in
     let started = Date()
     let page = await MarkdownRenderer.documentRenderingDiagrams(markdown: diagramsMarkdown, title: "diagrams.md", fileURL: diagramsURL)
     let elapsed = Date().timeIntervalSince(started)
-    check("mermaid diagrams rendered to SVG (\(String(format: "%.2f", elapsed))s)", page.components(separatedBy: "<div class=\"mermaid-diagram\"><div class=\"mermaid-light\"><svg").count - 1 == 2)
+    check("mermaid diagrams rendered to SVG (\(String(format: "%.2f", elapsed))s)", page.components(separatedBy: "<div class=\"mermaid-light\"><svg").count - 1 == 2)
     check("mermaid light and dark variants", page.components(separatedBy: "<div class=\"mermaid-dark\"><svg").count - 1 == 2)
     check("mermaid flowchart labels present", page.contains("Parser") && page.contains("Window"))
+    check("diagram natural width recorded for narrow windows", page.contains("<div class=\"mermaid-diagram\" style=\"--diagram-width: "))
     check("invalid mermaid falls back to code", page.contains("<pre><code class=\"language-mermaid\">this is not a valid diagram"))
     let again = Date()
     _ = await MarkdownRenderer.documentRenderingDiagrams(markdown: diagramsMarkdown, title: "diagrams.md", fileURL: diagramsURL)
     check("re-render uses cache", Date().timeIntervalSince(again) < 0.5)
     diagramsDone = true
 }
+final class InjectionProbe: NSObject, WKNavigationDelegate {
+    var done = false
+    var body = ""
+    let webView: WKWebView
+
+    override init() {
+        let configuration = WKWebViewConfiguration()
+        configuration.defaultWebpagePreferences.allowsContentJavaScript = false
+        webView = WKWebView(frame: NSRect(x: 0, y: 0, width: 400, height: 300), configuration: configuration)
+        super.init()
+        webView.navigationDelegate = self
+        webView.loadHTMLString("<div data-mermaid=\"0\">code</div><script>document.title = 'page-js-ran'</script>", baseURL: nil)
+    }
+
+    func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+        webView.evaluateJavaScript("document.querySelector('[data-mermaid]').outerHTML = '<svg id=\"injected\"></svg>'; document.title") { title, _ in
+            webView.evaluateJavaScript("document.body.innerHTML") { html, _ in
+                self.body = "\(title ?? "")|\(html ?? "")"
+                self.done = true
+            }
+        }
+    }
+}
+let probe = InjectionProbe()
+
 let deadline = Date().addingTimeInterval(60)
 while !diagramsDone && Date() < deadline {
     RunLoop.main.run(until: Date().addingTimeInterval(0.05))
 }
 check("mermaid rendering finished", diagramsDone)
+while !probe.done && Date() < deadline {
+    RunLoop.main.run(until: Date().addingTimeInterval(0.05))
+}
+check("app can inject diagrams into a page whose own scripts are off", probe.body.contains("<svg id=\"injected\"></svg>"))
+check("page scripts stay disabled", !probe.body.hasPrefix("page-js-ran"))
 
 print("\(passes) passed, \(failures) failed")
 exit(failures == 0 ? 0 : 1)
