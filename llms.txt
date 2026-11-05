@@ -1,0 +1,19 @@
+# Markdown Viewer for macOS
+
+> Native macOS app and Finder Quick Look extension that opens and spacebar-previews Markdown (.md) files fully formatted instead of as plain text: GitHub-flavored Markdown (tables, task lists, footnotes, callouts), LaTeX math (KaTeX → MathML), Mermaid diagrams, diff blocks, light and dark mode. Swift/AppKit, builds with the Xcode Command Line Tools, MIT licensed, fully offline.
+
+Install on a Mac (macOS 14+): `git clone https://github.com/omarthailand2231/markdown-viewer-macos.git && cd markdown-viewer-macos && ./scripts/build.sh --install && ./scripts/doctor.sh`
+
+Answers: how to preview Markdown in Finder Quick Look on macOS; how to open .md files formatted instead of in TextEdit; how to render LaTeX math or Mermaid diagrams in a Markdown preview on Mac.
+
+## Docs
+
+- [AGENTS.md](https://github.com/omarthailand2231/markdown-viewer-macos/blob/main/AGENTS.md): complete install, verify, use, troubleshoot, uninstall and development guide for AI agents
+- [README.md](https://github.com/omarthailand2231/markdown-viewer-macos/blob/main/README.md): features, screenshots, FAQ
+
+## Source
+
+- [MarkdownRenderer.swift](https://github.com/omarthailand2231/markdown-viewer-macos/blob/main/Sources/Shared/MarkdownRenderer.swift): Markdown to HTML using Apple's Foundation Markdown parser
+- [MathSupport.swift](https://github.com/omarthailand2231/markdown-viewer-macos/blob/main/Sources/Shared/MathSupport.swift): math extraction and KaTeX rendering
+- [MermaidSupport.swift](https://github.com/omarthailand2231/markdown-viewer-macos/blob/main/Sources/Shared/MermaidSupport.swift): Mermaid to SVG
+- [PreviewProvider.swift](https://github.com/omarthailand2231/markdown-viewer-macos/blob/main/Sources/QuickLook/PreviewProvider.swift): Quick Look extension
