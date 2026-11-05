@@ -17,18 +17,18 @@ enum MarkdownRenderer {
         MathExtractor.extract(splitFrontMatter(markdown).1).1.filter(\.diagram).map(\.tex)
     }
 
-    static func document(markdown: String, title: String, fileURL: URL?, diagrams: [String: String] = [:]) -> String {
+    static func document(markdown: String, title: String, fileURL: URL?, diagrams: [String: String] = [:], diagramsPending: Bool = false) -> String {
         """
         <!doctype html>
         <html><head><meta charset="utf-8"><meta name="color-scheme" content="light dark">
         <title>\(escape(title))</title><style>\(stylesheet)</style></head>
         <body><article class="markdown-body">
-        \(body(markdown: markdown, fileURL: fileURL, diagrams: diagrams))</article></body></html>
+        \(body(markdown: markdown, fileURL: fileURL, diagrams: diagrams, diagramsPending: diagramsPending))</article></body></html>
 
         """
     }
 
-    static func body(markdown: String, fileURL: URL?, diagrams: [String: String] = [:]) -> String {
+    static func body(markdown: String, fileURL: URL?, diagrams: [String: String] = [:], diagramsPending: Bool = false) -> String {
         let (frontMatter, content) = splitFrontMatter(markdown)
         var html = ""
         if let frontMatter {
@@ -45,7 +45,7 @@ enum MarkdownRenderer {
             return html + "<pre><code>\(escape(content))</code></pre>\n"
         }
         var context = Context()
-        html += MathExtractor.restore(render(buildTree(parsed, fileURL: fileURL), &context), math, diagrams: diagrams)
+        html += MathExtractor.restore(render(buildTree(parsed, fileURL: fileURL), &context), math, diagrams: diagrams, pending: diagramsPending)
         return html + footnoteSection(footnotes, fileURL: fileURL)
     }
 
@@ -420,7 +420,10 @@ enum MarkdownRenderer {
       font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Helvetica Neue", "Thonburi", sans-serif;
       -webkit-font-smoothing: antialiased; word-wrap: break-word;
     }
-    .markdown-body { max-width: 880px; margin: 0 auto; padding: 32px 40px 72px; }
+    html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+    .markdown-body { max-width: 880px; margin: 0 auto; padding: clamp(20px, 4vw, 40px) clamp(16px, 5vw, 44px) 72px; }
+    [id] { scroll-margin-top: 16px; }
+    ::selection { background: #0969da33; }
     .markdown-body > :first-child { margin-top: 0 !important; }
     h1, h2, h3, h4, h5, h6 { margin: 1.5em 0 .6em; font-weight: 600; line-height: 1.25; }
     h1 { font-size: 2em; padding-bottom: .3em; border-bottom: 1px solid var(--soft-border); }
@@ -478,6 +481,7 @@ enum MarkdownRenderer {
     .math-fallback, .katex-error { color: #cf222e !important; }
     @media (prefers-color-scheme: dark) { .math-fallback, .katex-error { color: #f85149 !important; } }
     pre.diff { padding: 12px 0; }
+    pre.diff code { display: inline-block; min-width: 100%; }
     pre.diff span { display: block; min-height: 1.45em; padding: 0 16px; }
     .diff-add { color: var(--diff-add); background: #2ea04326; }
     .diff-del { color: var(--diff-del); background: #f8514926; }
@@ -487,6 +491,25 @@ enum MarkdownRenderer {
     .mermaid-diagram svg { max-width: 100%; height: auto; }
     .mermaid-dark { display: none; }
     @media (prefers-color-scheme: dark) { .mermaid-light { display: none; } .mermaid-dark { display: block; } }
+    .mermaid-pending pre { opacity: .55; }
+    @media (max-width: 600px) {
+      body { font-size: 15px; }
+      h1 { font-size: 1.7em; } h2 { font-size: 1.35em; } h3 { font-size: 1.15em; }
+      ul, ol { padding-left: 1.4em; }
+      pre { padding: 12px; }
+      th, td { padding: 5px 9px; }
+      .mermaid-diagram { text-align: left; }
+      .mermaid-diagram svg { max-width: none !important; width: min(var(--diagram-width, 100%), 640px); }
+    }
+    @media print {
+      :root { --bg: #ffffff; --fg: #1f2328; --muted: #59636e; --border: #d1d9e0; --soft-border: #d1d9e0; --code-bg: #f3f4f6; --pre-bg: #f6f8fa; --link: #0969da; --row: #f6f8fa; }
+      .markdown-body { max-width: none; padding: 0; }
+      pre, pre code { white-space: pre-wrap; word-break: break-word; }
+      pre, blockquote, table, img, .mermaid-diagram, .alert { break-inside: avoid; }
+      h1, h2, h3 { break-after: avoid; }
+      .mermaid-dark { display: none !important; } .mermaid-light { display: block !important; }
+    }
+    @page { margin: 16mm; }
     .footnotes { margin-top: 2em; padding-top: 1em; border-top: 1px solid var(--soft-border); color: var(--muted); font-size: .875em; }
     .footnotes ol { padding-left: 1.5em; }
     sup.footnote-ref { font-size: .75em; line-height: 0; }

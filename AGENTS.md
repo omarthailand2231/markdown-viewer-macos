@@ -24,7 +24,7 @@ A successful `doctor.sh` prints seven ✓ lines and exits with code 0:
 
 ```text
 Markdown Viewer doctor
-  ✓ App installed: /Users/<you>/Applications/MarkdownViewer.app
+  ✓ App installed: /Users/<you>/Applications/Markdown Viewer.app
   ✓ Code signature valid
   ✓ Quick Look extension registered and enabled
   ✓ Default app for .md files
@@ -36,14 +36,14 @@ Markdown Viewer doctor
 Right after a fresh install, "Default app for .md files" can still fail, because the app claims `.md` the first time it launches. Set it explicitly (only if the user wants it as their default):
 
 ```sh
-~/Applications/MarkdownViewer.app/Contents/MacOS/MarkdownViewer --make-default
+"$HOME/Applications/Markdown Viewer.app/Contents/MacOS/MarkdownViewer" --make-default
 ```
 
 ### What the install changes (tell the user)
 
 | Change | Where |
 |:-------|:------|
-| The app and its Quick Look extension | `~/Applications/MarkdownViewer.app` |
+| The app and its Quick Look extension | `~/Applications/Markdown Viewer.app` |
 | Quick Look registration | `pluginkit` database (per user) |
 | Default app for `net.daringfireball.markdown` (`.md`, `.markdown`) | Launch Services, on first launch or `--make-default` |
 | A self-signed code-signing certificate "Local Code Signing", created once | Keychain `~/Library/Keychains/dev-signing.keychain-db`, password in `~/.config/dev-signing/keychain-password` |
@@ -56,13 +56,13 @@ There are no daemons, login items, network services, analytics or admin prompts.
 
 | Task | Command or action |
 |:-----|:------------------|
-| Open a file in the viewer | `open -a ~/Applications/MarkdownViewer.app path/to/file.md` (or just `open file.md` once it is the default) |
-| Open several files as tabs | `open -a ~/Applications/MarkdownViewer.app a.md b.md` |
+| Open a file in the viewer | `open -a "Markdown Viewer" path/to/file.md` (or just `open file.md` once it is the default) |
+| Open several files as tabs | `open -a "Markdown Viewer" a.md b.md` |
 | Quick Look preview | Select the file in Finder and press Space. `open -R file.md` reveals it in Finder for the user. |
-| Make it the default for `.md` | `~/Applications/MarkdownViewer.app/Contents/MacOS/MarkdownViewer --make-default`, or the app menu → *Make Default for Markdown Files* |
+| Make it the default for `.md` | `"$HOME/Applications/Markdown Viewer.app/Contents/MacOS/MarkdownViewer" --make-default`, or the app menu → *Make Default for Markdown Files* |
 | Render a Markdown file to PNG without opening a window | `./scripts/snapshot.sh file.md out.png [--dark] [--full] [--width 900] [--height 1100]` (run from the repo) |
 
-The viewer reloads automatically when the file changes on disk, so an agent can keep editing a `.md` file while the user watches it update. Inside the app: ⌘E opens the file in the user's text editor, ⇧⌘R reveals it in Finder, ⌘P prints or saves a PDF, and ⌘= / ⌘- / ⌘0 zoom.
+The viewer reloads automatically when the file changes on disk, so an agent can keep editing a `.md` file while the user watches it update. Inside the app: ⌘F finds in the page (⌘G / ⇧⌘G for next and previous), ⌘E opens the file in the user's text editor, ⇧⌘R reveals it in Finder, ⌘P prints or saves a PDF, ⌘= / ⌘- / ⌘0 zoom (remembered), and File → Open Recent lists recent documents. Dropping `.md` files onto a window opens them as tabs.
 
 > [!WARNING]
 > Do not use `qlmanage -p` to test the preview. On current macOS it crashes inside Apple's own tool when it hosts a modern (app-extension) Quick Look preview. Use Finder + Space, or `./scripts/snapshot.sh` for a headless render made by the same code.
@@ -113,12 +113,12 @@ Dollar amounts such as `$5 and $10` stay plain text. To print a literal dollar s
 |:--------|:----|
 | Space in Finder still shows plain text | `qlmanage -r && qlmanage -r cache && killall Finder`, then check System Settings → General → Login Items & Extensions → Quick Look → **Markdown Preview** is on. Run `./scripts/doctor.sh`. |
 | Settings seem lost after a restart or login | Run `./scripts/doctor.sh`. Everything is saved on disk by macOS (default app via Launch Services, the extension via `pluginkit -e use`). The usual cause is a second registered copy of the app (doctor flags it); unregister it with `lsregister -u <path>`. Then run `--make-default`. |
-| `.md` files still open in TextEdit or Xcode | `~/Applications/MarkdownViewer.app/Contents/MacOS/MarkdownViewer --make-default`, or Finder → Get Info → Open with → Change All… |
+| `.md` files still open in TextEdit or Xcode | `"$HOME/Applications/Markdown Viewer.app/Contents/MacOS/MarkdownViewer" --make-default`, or Finder → Get Info → Open with → Change All… |
 | `swiftc: command not found` / `xcrun: error` | Install the Command Line Tools: `xcode-select --install` |
 | Signing fails | `./scripts/setup-signing.sh` is idempotent. Delete `~/Library/Keychains/dev-signing.keychain-db` and `~/.config/dev-signing/keychain-password`, then rebuild. |
 | Math shows as raw TeX in red | KaTeX is missing from the bundle. Rebuild with `./scripts/build.sh --install` and check `doctor.sh`. |
 | A Mermaid block shows as code | The diagram has a syntax error (Mermaid rejected it) or `mermaid.min.js` is missing (see `doctor.sh`). |
-| App opens behind other windows | `open -a ~/Applications/MarkdownViewer.app` brings it forward. |
+| App opens behind other windows | `open -a "Markdown Viewer"` brings it forward. |
 
 ---
 
@@ -153,7 +153,7 @@ scripts/                               build, test, snapshot, doctor, uninstall,
 ### Commands
 
 ```sh
-./scripts/test.sh                       # 90 checks: every syntax above, math, real Mermaid rendering, edge cases, speed
+./scripts/test.sh                       # 101 checks: every syntax above, math, real Mermaid rendering, edge cases, speed
 ./scripts/snapshot.sh Tests/Fixtures/everything.md /tmp/light.png --full
 ./scripts/snapshot.sh Tests/Fixtures/everything.md /tmp/dark.png --full --dark
 ./scripts/build.sh                      # build + sign into build/
@@ -166,7 +166,7 @@ scripts/                               build, test, snapshot, doctor, uninstall,
 1. Run `./scripts/test.sh` and keep it at 0 failures. Add a fixture line and a check for any new syntax.
 2. Look at the result: render the fixtures with `snapshot.sh` in **both** light and `--dark` and inspect the PNGs before claiming a visual change works.
 3. Both targets compile from `Sources/Shared`: the app is not sandboxed, but the Quick Look extension **is**. Shared code must work in the sandbox: read only the previewed file and its folder, write nothing, and add no new entitlements without a reason.
-4. Quick Look previews are data-based HTML: **no JavaScript runs in the preview**. Anything dynamic (math, diagrams) must become static HTML/SVG/MathML in Swift before the page is returned. The app's page also runs with page JavaScript disabled.
+4. Quick Look previews are data-based HTML: **no JavaScript runs in the preview**. In the app, page scripts are disabled too; the app itself fills in Mermaid diagrams after the page shows (`data-mermaid` placeholders replaced via `evaluateJavaScript`), which a test confirms still works with page scripts off. Anything dynamic (math, diagrams) must become static HTML/SVG/MathML in Swift before the page is returned. The app's page also runs with page JavaScript disabled.
 5. No new dependencies or package managers. Third-party code goes in `Vendor/<name>/` at a pinned version with its `LICENSE`, copied into both bundles by `scripts/build.sh`.
 6. Keep code free of explanatory comments; explain design in README.md or this file.
 7. Bundle identifiers: app `io.github.omarthailand2231.markdownviewer`, extension `….quicklook`. Changing them re-registers the extension and resets the default-app choice.

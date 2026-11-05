@@ -21,6 +21,14 @@ final class MermaidRenderer: NSObject, WKNavigationDelegate {
     private var waiters: [CheckedContinuation<Bool, Never>] = []
     private var cache: [String: String] = [:]
 
+    func cached(_ sources: [String]) -> [String: String] {
+        var hits: [String: String] = [:]
+        for source in sources {
+            if let html = cache[source] { hits[source] = html }
+        }
+        return hits
+    }
+
     func render(_ sources: [String]) async -> [String: String] {
         var missing: [String] = []
         for source in sources where cache[source] == nil && !missing.contains(source) {
@@ -35,7 +43,8 @@ final class MermaidRenderer: NSObject, WKNavigationDelegate {
             if let pairs = result as? [Any] {
                 for (source, value) in zip(missing, pairs) {
                     guard let pair = value as? [String], pair.count == 2 else { continue }
-                    cache[source] = "<div class=\"mermaid-diagram\"><div class=\"mermaid-light\">\(pair[0])</div><div class=\"mermaid-dark\">\(pair[1])</div></div>"
+                    let width = Self.naturalWidth(of: pair[0]).map { " style=\"--diagram-width: \($0)px\"" } ?? ""
+                    cache[source] = "<div class=\"mermaid-diagram\"\(width)><div class=\"mermaid-light\">\(pair[0])</div><div class=\"mermaid-dark\">\(pair[1])</div></div>"
                 }
             }
         }
@@ -44,6 +53,12 @@ final class MermaidRenderer: NSObject, WKNavigationDelegate {
             if let html = cache[source] { rendered[source] = html }
         }
         return rendered
+    }
+
+    static func naturalWidth(of svg: String) -> Int? {
+        guard let range = svg.range(of: #"max-width:\s*([0-9.]+)px"#, options: .regularExpression) else { return nil }
+        let digits = svg[range].drop(while: { !$0.isNumber })
+        return Double(digits.prefix(while: { $0.isNumber || $0 == "." })).map { Int($0.rounded(.up)) }
     }
 
     private func ensureLoaded() async -> Bool {

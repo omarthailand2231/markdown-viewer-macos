@@ -179,13 +179,25 @@ enum MathExtractor {
         return result
     }
 
-    static func restore(_ html: String, _ spans: [MathSpan], diagrams: [String: String]) -> String {
+    static func restore(_ html: String, _ spans: [MathSpan], diagrams: [String: String], pending: Bool = false) -> String {
         guard !spans.isEmpty else { return html }
         var output = html
+        var diagramIndex = 0
         for (index, span) in spans.enumerated() {
-            let rendered = span.diagram
-                ? diagrams[span.tex] ?? "<pre><code class=\"language-mermaid\">\(MarkdownRenderer.escape(span.tex))</code></pre>"
-                : MathRenderer.shared.html(span.tex, display: span.display)
+            let rendered: String
+            if span.diagram {
+                let code = "<pre><code class=\"language-mermaid\">\(MarkdownRenderer.escape(span.tex))</code></pre>"
+                if let svg = diagrams[span.tex] {
+                    rendered = svg
+                } else if pending {
+                    rendered = "<div class=\"mermaid-pending\" data-mermaid=\"\(diagramIndex)\">\(code)</div>"
+                } else {
+                    rendered = code
+                }
+                diagramIndex += 1
+            } else {
+                rendered = MathRenderer.shared.html(span.tex, display: span.display)
+            }
             let placeholder = token(index)
             if span.display {
                 output = output.replacingOccurrences(of: "<p>\(placeholder)</p>", with: rendered)

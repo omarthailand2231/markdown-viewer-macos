@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -uo pipefail
 
-APP="$HOME/Applications/MarkdownViewer.app"
+APP="$HOME/Applications/Markdown Viewer.app"
 EXTENSION_ID="io.github.omarthailand2231.markdownviewer.quicklook"
 FAILED=0
 ok() { printf '  ✓ %s\n' "$1"; }
@@ -32,11 +32,11 @@ else
   bad "Default app for .md is '$DEFAULT'. To change: \"$APP/Contents/MacOS/MarkdownViewer\" --make-default"
 fi
 
-COPIES="$(/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -dump 2>/dev/null | grep -E '^path: .*/MarkdownViewer\.app \(' | sed -E 's/^path: +//; s/ \(0x[0-9a-f]+\)$//' | sort -u)"
+COPIES="$(/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -dump 2>/dev/null | grep -E '^path: .*/(Markdown Viewer|MarkdownViewer)\.app \(' | sed -E 's/^path: +//; s/ \(0x[0-9a-f]+\)$//' | sort -u)"
 if [[ "$(printf '%s\n' "$COPIES" | grep -c .)" -le 1 ]]; then
   ok "Only one copy registered with macOS"
 else
-  bad "Several copies are registered, macOS may pick the wrong one after a restart: $(echo $COPIES). Unregister extras: lsregister -u <path>"
+  bad "Several copies are registered, macOS may pick the wrong one after a restart: $(echo $COPIES). Unregister extras: lsregister -u <path>, or rerun ./scripts/build.sh --install"
 fi
 
 for resource in katex.min.js mermaid.min.js; do

@@ -1,15 +1,17 @@
 #!/usr/bin/env bash
 set -uo pipefail
 
-APP="$HOME/Applications/MarkdownViewer.app"
+APP="$HOME/Applications/Markdown Viewer.app"
 LSREGISTER=/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister
 
 pkill -x MarkdownViewer 2>/dev/null || true
-if [[ -d "$APP" ]]; then
-  pluginkit -r "$APP/Contents/PlugIns/MarkdownPreview.appex" 2>/dev/null || true
-  "$LSREGISTER" -u "$APP" 2>/dev/null || true
-  rm -rf "$APP"
-fi
+for BUNDLE in "$APP" "$HOME/Applications/MarkdownViewer.app"; do
+  if [[ -d "$BUNDLE" ]]; then
+    pluginkit -r "$BUNDLE/Contents/PlugIns/MarkdownPreview.appex" 2>/dev/null || true
+    "$LSREGISTER" -u "$BUNDLE" 2>/dev/null || true
+    rm -rf "$BUNDLE"
+  fi
+done
 qlmanage -r >/dev/null 2>&1 || true
 qlmanage -r cache >/dev/null 2>&1 || true
 echo "Removed $APP and its Quick Look extension."

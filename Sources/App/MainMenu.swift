@@ -17,8 +17,14 @@ enum MainMenu {
             item("Quit \(name)", #selector(NSApplication.terminate(_:)), "q"),
         ])
 
+        let recent = NSMenuItem(title: "Open Recent", action: nil, keyEquivalent: "")
+        let recentMenu = NSMenu(title: "Open Recent")
+        recentMenu.delegate = RecentDocumentsMenu.shared
+        recent.submenu = recentMenu
+
         main.addSubmenu("File", [
             item("Open…", #selector(AppDelegate.openDocument(_:)), "o"),
+            recent,
             .separator(),
             item("Edit in Text Editor", #selector(DocumentWindowController.editInTextEditor(_:)), "e"),
             item("Show in Finder", #selector(DocumentWindowController.showInFinder(_:)), "r", [.command, .shift]),
@@ -30,6 +36,10 @@ enum MainMenu {
         main.addSubmenu("Edit", [
             item("Copy", #selector(NSText.copy(_:)), "c"),
             item("Select All", #selector(NSText.selectAll(_:)), "a"),
+            .separator(),
+            item("Find…", #selector(DocumentWindowController.showFind(_:)), "f"),
+            item("Find Next", #selector(DocumentWindowController.findNextMatch(_:)), "g"),
+            item("Find Previous", #selector(DocumentWindowController.findPreviousMatch(_:)), "g", [.command, .shift]),
         ])
 
         main.addSubmenu("View", [
@@ -73,5 +83,33 @@ private extension NSMenu {
         holder.submenu = submenu
         addItem(holder)
         return submenu
+    }
+}
+
+final class RecentDocumentsMenu: NSObject, NSMenuDelegate {
+    static let shared = RecentDocumentsMenu()
+
+    func menuNeedsUpdate(_ menu: NSMenu) {
+        menu.removeAllItems()
+        let urls = NSDocumentController.shared.recentDocumentURLs.filter { FileManager.default.fileExists(atPath: $0.path) }
+        if urls.isEmpty {
+            let empty = NSMenuItem(title: "No Recent Documents", action: nil, keyEquivalent: "")
+            empty.isEnabled = false
+            menu.addItem(empty)
+        }
+        for url in urls {
+            let entry = NSMenuItem(title: url.lastPathComponent, action: #selector(AppDelegate.openRecent(_:)), keyEquivalent: "")
+            entry.representedObject = url
+            entry.toolTip = url.path
+            let icon = NSWorkspace.shared.icon(forFile: url.path)
+            icon.size = NSSize(width: 16, height: 16)
+            entry.image = icon
+            menu.addItem(entry)
+        }
+        menu.addItem(.separator())
+        let clear = NSMenuItem(title: "Clear Menu", action: #selector(NSDocumentController.clearRecentDocuments(_:)), keyEquivalent: "")
+        clear.target = NSDocumentController.shared
+        clear.isEnabled = !urls.isEmpty
+        menu.addItem(clear)
     }
 }

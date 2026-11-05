@@ -2,7 +2,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-APP=build/MarkdownViewer.app
+APP="build/Markdown Viewer.app"
 EXT="$APP/Contents/PlugIns/MarkdownPreview.appex"
 TARGET="$(uname -m)-apple-macos14.0"
 KEYCHAIN="$HOME/Library/Keychains/dev-signing.keychain-db"
@@ -50,9 +50,20 @@ echo "Built $APP"
 
 if [[ "${1:-}" == "--install" ]]; then
   LSREGISTER=/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister
-  INSTALLED="$HOME/Applications/MarkdownViewer.app"
+  INSTALLED="$HOME/Applications/Markdown Viewer.app"
+  PROBE="$(mktemp -d)/probe.md"
+  echo "# probe" > "$PROBE"
+  CURRENT_DEFAULT="$(osascript -l JavaScript -e "ObjC.import('AppKit'); var u = \$.NSWorkspace.sharedWorkspace.URLForApplicationToOpenURL(\$.NSURL.fileURLWithPath('$PROBE')); u.isNil() ? '' : \$.NSBundle.bundleWithURL(u).bundleIdentifier.js" 2>/dev/null || true)"
+  rm -rf "$(dirname "$PROBE")"
   pkill -x MarkdownViewer 2>/dev/null || true
   mkdir -p "$HOME/Applications"
+  for LEGACY in "$HOME/Applications/MarkdownViewer.app" "$PWD/build/MarkdownViewer.app"; do
+    if [[ -d "$LEGACY" ]]; then
+      pluginkit -r "$LEGACY/Contents/PlugIns/MarkdownPreview.appex" 2>/dev/null || true
+      "$LSREGISTER" -u "$LEGACY" 2>/dev/null || true
+      rm -rf "$LEGACY"
+    fi
+  done
   rm -rf "$INSTALLED"
   ditto "$APP" "$INSTALLED"
   pluginkit -r "$PWD/$EXT" 2>/dev/null || true
@@ -63,5 +74,8 @@ if [[ "${1:-}" == "--install" ]]; then
   pluginkit -e use -i io.github.omarthailand2231.markdownviewer.quicklook
   qlmanage -r >/dev/null 2>&1 || true
   qlmanage -r cache >/dev/null 2>&1 || true
+  if [[ "$CURRENT_DEFAULT" == "io.github.omarthailand2231.markdownviewer" ]]; then
+    "$INSTALLED/Contents/MacOS/MarkdownViewer" --make-default >/dev/null
+  fi
   echo "Installed $INSTALLED"
 fi

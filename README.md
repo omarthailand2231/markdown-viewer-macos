@@ -33,7 +33,7 @@ cd markdown-viewer-macos
 ./scripts/doctor.sh
 ```
 
-This builds `MarkdownViewer.app` into `~/Applications`, registers and enables the Quick Look extension, and on first launch makes the app the default for `.md` files. These settings are saved by macOS and survive restarts and logins; `./scripts/doctor.sh` checks them any time. To change the default later: Finder → select a `.md` file → Get Info → *Open with* → *Change All…*.
+This builds `Markdown Viewer.app` into `~/Applications`, registers and enables the Quick Look extension, and on first launch makes the app the default for `.md` files. These settings are saved by macOS and survive restarts and logins; `./scripts/doctor.sh` checks them any time. To change the default later: Finder → select a `.md` file → Get Info → *Open with* → *Change All…*.
 
 > [!NOTE]
 > macOS only loads signed extensions, so the build script creates a self-signed **"Local Code Signing"** certificate in its own keychain (`~/Library/Keychains/dev-signing.keychain-db`) the first time it runs. It is used only to sign this app on your Mac. See [`scripts/setup-signing.sh`](scripts/setup-signing.sh).
@@ -74,14 +74,17 @@ Mermaid diagrams are drawn once by [Mermaid](https://mermaid.js.org) in a hidden
 
 | Action | Shortcut |
 |:-------|:--------:|
-| Open a file | ⌘O |
+| Open a file / open a recent one | ⌘O / File → Open Recent |
+| Find in the page, next / previous match | ⌘F, ⌘G / ⇧⌘G |
 | Edit the file in your text editor | ⌘E |
 | Show the file in Finder | ⇧⌘R |
 | Zoom in / out / actual size | ⌘= / ⌘- / ⌘0 |
 | Reload | ⌘R |
 | Print or save as PDF | ⌘P |
 
-Links to other Markdown files open in the viewer, web links open in your browser, and `#heading` links scroll within the page. The app saves nothing: closing the last window quits it.
+Links to other Markdown files open in the viewer, web links open in your browser, and `#heading` links scroll smoothly within the page. Drop `.md` files onto a window to open them as tabs. The window size and zoom level are remembered. Pages open instantly and Mermaid diagrams fill in a moment later, so a document never waits on a diagram.
+
+The layout adapts to the window: narrow windows get tighter spacing and readable, sideways-scrolling diagrams; long code lines and diffs scroll without losing their colors; printing and *Save as PDF* use a clean light layout.
 
 ## How it works
 
@@ -103,7 +106,7 @@ Links to other Markdown files open in the viewer, web links open in your browser
 ## Development
 
 ```sh
-./scripts/test.sh                                   # 90 checks, including real Mermaid rendering
+./scripts/test.sh                                   # 101 checks, including real Mermaid rendering
 ./scripts/snapshot.sh docs/demo.md out.png --dark   # render any .md to a PNG without opening a window
 ./scripts/build.sh --install                        # build, sign, install, register
 ./scripts/doctor.sh                                 # verify the install
