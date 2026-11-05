@@ -101,6 +101,9 @@ enum DefaultHandler {
     }
 
     static func makeDefault(completion: @escaping (Error?) -> Void) {
+        if let bundleID = Bundle.main.bundleIdentifier {
+            LSSetDefaultRoleHandlerForContentType(markdown.identifier as CFString, .all, bundleID as CFString)
+        }
         NSWorkspace.shared.setDefaultApplication(at: Bundle.main.bundleURL, toOpen: markdown) { error in
             DispatchQueue.main.async { completion(error) }
         }

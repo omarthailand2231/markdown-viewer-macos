@@ -33,7 +33,7 @@ cd markdown-viewer-macos
 ./scripts/doctor.sh
 ```
 
-This builds `MarkdownViewer.app` into `~/Applications`, registers the Quick Look extension, and on first launch makes the app the default for `.md` files. To change the default later: Finder → select a `.md` file → Get Info → *Open with* → *Change All…*.
+This builds `MarkdownViewer.app` into `~/Applications`, registers and enables the Quick Look extension, and on first launch makes the app the default for `.md` files. These settings are saved by macOS and survive restarts and logins; `./scripts/doctor.sh` checks them any time. To change the default later: Finder → select a `.md` file → Get Info → *Open with* → *Change All…*.
 
 > [!NOTE]
 > macOS only loads signed extensions, so the build script creates a self-signed **"Local Code Signing"** certificate in its own keychain (`~/Library/Keychains/dev-signing.keychain-db`) the first time it runs. It is used only to sign this app on your Mac. See [`scripts/setup-signing.sh`](scripts/setup-signing.sh).
